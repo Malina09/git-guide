@@ -56,5 +56,5 @@
 ```
 
 **Пример описания информации о коммите:**  
-![alt text](http://url/to/img.png)
+![description](description_hash.png)
  

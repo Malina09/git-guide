@@ -304,6 +304,7 @@ HEAD is now at b576d89 feat: добавить массив Expenses и цикл 
    git merge <название ветки>
 ```
 Также это можно сделать в веб версии Git.
+
 **ВАЖНО** прежде чем мержить какие-либо изменения, нужно устранить все конфликты, чтобы случайно не удалить другие нужные изменения.
 После того, как выполнили мерж, необходимо удалить ветку, чтобы не засорять проект ненужными ветками. Удалить ветку можно командой:
 
@@ -311,3 +312,175 @@ HEAD is now at b576d89 feat: добавить массив Expenses и цикл 
    git branch -D <название ветки>
 ```
 Однако ветка удалится так только локально, лучше удалять ветку также на самом Git, после выполения команды слияния, Git сам предложит удалить ветку.
+
+#### Конфликты
+
+Иллюстрация того, как может возникнуть конфликт:
+
+![conflict](conflict.png)
+
+Во время слияния Git сам подсвечивает файлы, которые не смог объединить. Чтобы разобраться в ситуации, нужно сделать следующее:
+
+1. Заглянуть в файл, где произошёл конфликт.
+2. Изучить обе стороны конфликта — вашу версию и версию вашего коллеги. Ваша задача — правильно собрать две версии в итоговую, так чтобы изменения обеих сторон не потерялись. Новая версия станет текущей актуальной. 
+3. Вручную удалить или подправить неактуальные изменения, если они есть.
+4. Подготовить изменения к сохранению и сделать коммит.
+
+Как решать такую проблему с точки зрения гита:
+
+1. Если вы знаете, что ваш коллега внес какие-то изменения, но сами не успели еще внести новые в коммит (по сути это версия избегания конфликта):
+
+```bash
+   git checkout main \\ переключаемся на главную ветку
+   git stash \\ скрываем свои изменения
+   git pull \\ забираем изменения из удаленной ветки main
+   git checkout <наша ветка> \\ переключаемся на нашу ветку, через которую хотели вносить изменения
+   git rebase develop \\ по сути это тот же git pull && git merge
+   git stash pop \\ возвращаем те изменения, которые не успели закоммитить
+```
+
+2. Если уже конфликт случился, то необходим такой путь решения:
+
+```bash
+   git checkout main \\ переключаемся на главную ветку
+   git pull \\ забираем изменения из удаленной ветки main
+   git checkout <наша ветка> \\ переключаемся на нашу ветку, через которую хотели вносить изменения
+   git rebase develop \\ по сути это тот же git pull && git merge
+  \\ на этом моменте как раз возникает конфликт
+  \\ заходим в привычное вам IDE, соединчем безопасно чужие изменения и ваши
+   git rebase --continue \\ если пока не можете внести свои изменения, так как не уверены можно сделать git rebase --abort
+   git push origin <наша ветка> -f \\ то есть выполняем force push, чтобы принудительно заменить коммиты на новые правильные
+```
+3. Также вам может понадобиться сделать что-то с вашей веткой (соединить коммиты, так как они решают одну и ту же проблему, переименовать коммиты, удалить коммиты и т.д.) для этого мы можем использовать команду:
+
+```bash
+   git rebase -i HEAD~<количество коммитов>
+```
+
+После этой команды открывается история коммитов, которые вы сделали, <количество коммитов> означает, что появятся последнии N коммитов, которые вы запросили.
+
+Вам в командной строке предоставятся коммиты, которые вы сделали и огромное количество команд, которые позволят отредактировать коммиты:
+
+```bash                                                       
+pick 4630574 fix: change README.md
+pick fceb41a fix: update README.md
+pick 385463a add hash description
+pick fb43cab feat: add picture for hash description
+pick 115ef87 add tracking description
+pick 5b67625 fix: status description
+pick 3be9f9c feat: add picture for status
+pick bd0a64f feat: add mermaid table
+pick b3cae03 feat: add commits features
+pick bfb344e fix: code style
+pick 4c78da3 feat: add commit's changes info
+pick 95efeb8 fix: add picture for commit's info
+pick c0bd473 fix: code style
+pick fa1b770 fix: code style
+pick c8dfb7c fix: fix code style
+pick 798c7c7 feat: git diff
+pick 641d4cd feat: work with gitignore
+pick 9ad8368 feat: branches navigation
+pick 2828a99 fix: code style
+pick 66de8cc feat: add merge info
+pick 6b43435 feat: add conflict.png
+
+# Rebase 0cbc5a9..6b43435 onto 0cbc5a9 (21 commands)
+#
+# Commands:
+# p, pick <commit> = use commit
+# r, reword <commit> = use commit, but edit the commit message
+# e, edit <commit> = use commit, but stop for amending
+# s, squash <commit> = use commit, but meld into previous commit
+# f, fixup [-C | -c] <commit> = like "squash" but keep only the previous
+#                    commit's log message, unless -C is used, in which case
+#                    keep only this commit's message; -c is same as -C but
+#                    opens the editor
+# x, exec <command> = run command (the rest of the line) using shell
+# b, break = stop here (continue rebase later with 'git rebase --continue')
+# d, drop <commit> = remove commit
+# l, label <label> = label current HEAD with a name
+# t, reset <label> = reset HEAD to a label
+# m, merge [-C <commit> | -c <commit>] <label> [# <oneline>]
+# .       create a merge commit using the original merge commit's
+# .       message (or the oneline, if no original merge commit was
+# .       specified); use -c <commit> to reword the commit message
+#
+# These lines can be re-ordered; they are executed from top to bottom.
+#
+# If you remove a line here THAT COMMIT WILL BE LOST.
+#
+# However, if you remove everything, the rebase will be aborted.
+#
+```
+Для того, чтобы выполнить какую-либо команду вам достаточно заменить слово **pick** перед коммитом на одну букву, которая соответствует одной из команд.
+
+Все команды довольно интуитивные, однако со слиянием нескольких коммитов могут возникнуть вопросы, поэтому рассмотрим вариант со слиянием нескольких коммитов:
+
+#### Пример:
+
+Допустим, мы захотели слить коммит c0bd473, fa1b770 и c8dfb7c, чтобы не засорят историю коммитов, что логично, так как они создавались примерно для одного и того же, судя по названию(хотя лучше перепроверить, мало ли вы давно делали эти коммиты и они просто имеют плохие комментирующие сообщения, почему собственно и важно сразу правильно комментировать коммиты).
+
+Для того, чтобы это сделать на необходимо заменить нужные **pick** на **s**, то есть squash, вот таким образом (верхний коммит оставляем нетронутым, а все последующие, которые хотим с ним слить помечаем как **s**):
+
+```bash                                                       
+pick 4630574 fix: change README.md
+pick fceb41a fix: update README.md
+pick 385463a add hash description
+pick fb43cab feat: add picture for hash description
+pick 115ef87 add tracking description
+pick 5b67625 fix: status description
+pick 3be9f9c feat: add picture for status
+pick bd0a64f feat: add mermaid table
+pick b3cae03 feat: add commits features
+pick bfb344e fix: code style
+pick 4c78da3 feat: add commit's changes info
+pick 95efeb8 fix: add picture for commit's info
+pick c0bd473 fix: code style
+s fa1b770 fix: code style
+s c8dfb7c fix: fix code style
+pick 798c7c7 feat: git diff
+pick 641d4cd feat: work with gitignore
+pick 9ad8368 feat: branches navigation
+pick 2828a99 fix: code style
+pick 66de8cc feat: add merge info
+pick 6b43435 feat: add conflict.png
+```
+
+Нажимаем сочетание клавиш ctrl O для сохранения изменений и ctrl X для выхода из этого окна, после чего появляется вот такое окно редактирования:
+
+```bash
+# This is a combination of 3 commits.
+# This is the 1st commit message:
+
+fix: code style \\ изменяем верхний коммит на то, как вы хотели бы, чтобы помечался ваш слитый коммит
+# This is the commit message #2:
+
+fix: code style
+# This is the commit message #3:
+
+fix: fix code style
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# Author:    Natashka Malinovskaya <63506873+Malina09@users.noreply.github.com>
+# Date:      Wed Aug 9 13:38:36 2023 +0300
+#
+# interactive rebase in progress; onto 0cbc5a9
+# Last commands done (15 commands done):
+#    squash fa1b770 fix: code style
+#    squash c8dfb7c fix: fix code style
+# Next commands to do (6 remaining commands):
+#    pick 798c7c7 feat: git diff
+#    pick 641d4cd feat: work with gitignore
+# You are currently rebasing branch 'main' on '0cbc5a9'.
+#
+# Changes to be committed:
+#       modified:   README.md
+#
+```
+локально вы поменяли все коммиты, как хотели, после чего нужно ввести команду:
+
+```bash
+   git push origin <наша ветка> -f \\ то есть выполняем force push, чтобы принудительно заменить коммиты на новые правильные
+```
